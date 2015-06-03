@@ -9,7 +9,6 @@ import java.sql.Statement;
 
 import javax.swing.JOptionPane;
 import javax.swing.table.TableModel;
-
 import net.proteanit.sql.DbUtils;
 
 public class MaquinaGestora {
@@ -89,13 +88,11 @@ public class MaquinaGestora {
 						+ "',"
 						+ cp_ + ",'" + pais_ + "');";
 				consulta.executeUpdate(query1);
-				String query2 = "insert into datos_bancarios(num_tarjeta, dni_titular, fecha_caducidad, cod_seguridad, tipo_tarjeta) values('"
+				String query2 = "insert into datos_bancarios(num_tarjeta, dni_titular, fecha_caducidad , cod_seguridad, tipo_tarjeta) values('"
 						+ tarjeta_
 						+ "','"
 						+ dni_
-						+ "','"
-						+ caducidad_
-						+ "',"
+						+ "','"+caducidad_+"',"
 						+ codigo_ + ",'" + tipotarjeta_ + "');";
 				consulta.executeUpdate(query2);
 
@@ -110,10 +107,29 @@ public class MaquinaGestora {
 		}
 	}
 
-	public void bajaCliente(String dni_, String n_usuario_) {
+	public void bajaCliente(String n_usuario_) {
+		String dni_="";
+		Statement consulta;
+		ResultSet user=null;
+		try {
+			consulta = Conexion
+					.getInstance("localhost", "ventaentradas", "postgres",
+							"tonphp").getConection().createStatement();
+			user=consulta.executeQuery("select dni FROM usuario WHERE n_usuario = '"
+					+ n_usuario_ + "';");
+			while(user.next()){
+				dni_ = user.getString("dni");
+			}
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		
 		if (this.existeCliente(dni_, n_usuario_)) {
+			System.out.println(n_usuario_);
 			try {
-				Statement consulta = Conexion
+				consulta = Conexion
 						.getInstance("localhost", "ventaentradas", "postgres",
 								"tonphp").getConection().createStatement();
 				consulta.executeUpdate("DELETE FROM usuario WHERE dni = '"
@@ -160,12 +176,13 @@ public class MaquinaGestora {
 		return conclusion;
 	}
 
-	public void altaEvento(String nombre_, String estado_, String fechahora_,
-			String sala_, String asiento_, String datos_, Integer nument_,
-			Integer precio_, String NombreLugarEvento_, String tipo_,
-			Integer Aforo_, String Direccion_, String poblacion_,
-			Integer codigoPostal_, String Pais_) {
-		Integer idLugar = 0;
+	public void altaEvento(String nombre_, String Direccion_,
+			String poblacion_, String estado_, String fechahora_, String tipo_,
+			String sala_, String asiento_, Integer nument_, String datos_,
+			String Pais_, Integer Aforo_, String codigoPostal_,
+			String NombreLugarEvento_, Integer precio_) {
+
+		int idLugar = 0;
 
 		if (!this.existeEvento(nombre_)) {
 			try {
@@ -198,7 +215,6 @@ public class MaquinaGestora {
 
 						idLugar = _lugar.getInt("id");
 
-						System.out.println(idLugar);
 					}
 
 				} else {
@@ -260,7 +276,7 @@ public class MaquinaGestora {
 		}
 	}
 
-	public void comprarEvento(String num_tarjeta, Integer id_evento,
+	public void comprarEvento(String num_tarjeta, String nombre, Integer id_evento,
 			Integer cantidad, double importe) {
 		String nombreEvento = "";
 		try {
@@ -275,7 +291,7 @@ public class MaquinaGestora {
 				nombreEvento = nomEvento.getString("nombre");
 			}
 
-			if (!this.existeEvento(nombreEvento)) {
+			if (this.existeEvento(nombreEvento)) {
 
 				consulta = Conexion
 						.getInstance("localhost", "ventaentradas", "postgres",
@@ -297,12 +313,15 @@ public class MaquinaGestora {
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
+		
+		this.generarPersona(num_tarjeta, id_evento);
 	}
 
-	public ResultSet getCompras(String n_usuario) {
+	public TableModel getCompras(String n_usuario) {
 
 		ResultSet compras = null;
-		String tarj="";
+		String tarj = "";
+		TableModel tm = null;
 
 		try {
 			Statement consulta = Conexion
@@ -311,25 +330,26 @@ public class MaquinaGestora {
 			ResultSet tarjeta = consulta
 					.executeQuery("SELECT num_tarjeta from datos_bancarios where dni_titular=( SELECT dni FROM usuario WHERE n_usuario =('"
 							+ n_usuario + "'))");
-			while(tarjeta.next()){
+			while (tarjeta.next()) {
 				tarj = tarjeta.getString("num_tarjeta");
 			}
 			compras = consulta
 					.executeQuery("select nombre, estado, evento.fecha_hora, sala, asiento, datos, num_entradas_disponibles, precio, cantidad, importe from evento, detalles_compra WHERE evento.id=detalles_compra.id_evento AND detalles_compra.num_tarjeta like '"
 							+ tarj + "';");
+			tm = DbUtils.resultSetToTableModel(compras);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(null, "error");
 		} catch (Exception e) {
 			System.out.println(e.getMessage());
 		}
-		
-		return compras;
+
+		return tm;
 	}
 
 	public TableModel buscarEventosActivos() {
 		ResultSet rs = null;
-		TableModel tm=null;
+		TableModel tm = null;
 
 		try {
 
@@ -339,7 +359,7 @@ public class MaquinaGestora {
 			rs = consulta
 					.executeQuery("SELECT * FROM evento  WHERE  estado='activo'");
 			tm = DbUtils.resultSetToTableModel(rs);
-            
+
 			if (rs != null) {
 
 			} else {
@@ -366,7 +386,7 @@ public class MaquinaGestora {
 							"tonphp").getConection().createStatement();
 			rs = consulta.executeQuery("SELECT * FROM evento  WHERE  nombre='"
 					+ nombre + "'");
-			tm=DbUtils.resultSetToTableModel(rs);
+			tm = DbUtils.resultSetToTableModel(rs);
 
 			if (rs != null) {
 
@@ -382,5 +402,80 @@ public class MaquinaGestora {
 		return tm;
 
 	}
+	
+	private Persona generarPersona(String numTarjeta, Integer idEvento){
+		String dni="";
+		String n_usuario="";
+		String nombre="";
+		String apellidos="";
+		Integer id_lugar_evento=0;
+		String nombre_evento="";
+		String fecha_evento="";
+		String sala="";
+		String asiento="";
+		int id_evento=0;
+		int precio=0;
+		int id_compra=0;
+		String direccion="";
+		String poblacion="";
+		String pais="";
+		
+		try {
+			Statement consulta = Conexion
+					.getInstance("localhost", "ventaentradas", "postgres",
+							"tonphp").getConection().createStatement();
+			
+			ResultSet usuario = consulta
+					.executeQuery("SELECT dni, n_usuario, nombre, apellidos FROM usuario WHERE dni = (SELECT dni_titular from datos_bancarios where num_tarjeta='"
+							+ numTarjeta + "')");
+			while (usuario.next()) {
+				dni = usuario.getString("dni");
+				n_usuario = usuario.getString("n_usuario");
+				nombre = usuario.getString("nombre");
+				apellidos = usuario.getString("apellidos");
+			}
+			
+			ResultSet evento = consulta
+					.executeQuery("select evento.id, nombre, evento.fecha_hora, sala, asiento, precio, id_lugar_evento from evento, detalles_compra WHERE evento.id=detalles_compra.id_evento AND detalles_compra.num_tarjeta like '"
+							+ numTarjeta + "';");
+			while (evento.next()) {
+				id_evento=evento.getInt("id");
+				nombre_evento=evento.getString("nombre");
+				fecha_evento=evento.getString("fecha_hora");
+				sala=evento.getString("sala");
+				asiento=evento.getString("asiento");
+				precio=evento.getInt("precio");
+				id_lugar_evento=evento.getInt("id_lugar_evento");
+			}
+			
+			ResultSet compra = consulta
+					.executeQuery("select id from detalles_compra WHERE id="+id_evento+" AND num_tarjeta= '"
+							+ numTarjeta + "';");
+			while (compra.next()) {			
+				id_compra=compra.getInt("id");
+			}
+			
+			ResultSet lugar = consulta
+					.executeQuery("select direccion, poblacion, pais from lugar_evento, evento WHERE evento.id="+id_lugar_evento+ ";");
+			while (lugar.next()) {
+				direccion=lugar.getString("direccion");
+				poblacion=lugar.getString("poblacion");
+				pais=lugar.getString("pais");
+			}
+			
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(null, "error");
+		} catch (Exception e) {
+			System.out.println(e.getMessage());
+		}
+
+	Persona persona=new Persona(id_compra, dni, nombre, apellidos, numTarjeta, nombre_evento, direccion, poblacion, pais, sala, asiento, precio);
+	
+		return persona;
+	}
+	
+	
 
 }

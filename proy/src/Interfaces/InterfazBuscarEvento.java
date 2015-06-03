@@ -1,5 +1,8 @@
-package proy;
+package Interfaces;
+
+import java.awt.Container;
 import java.awt.EventQueue;
+import java.awt.Frame;
 import java.awt.Image;
 
 import javax.swing.JFrame;
@@ -19,9 +22,6 @@ import java.sql.SQLException;
 
 import javax.swing.JTable;
 import javax.swing.JScrollPane;
-
-import net.proteanit.sql.DbUtils;
-
 import javax.swing.ImageIcon;
 
 import java.awt.Font;
@@ -31,23 +31,33 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableModel;
 
+import proy.MaquinaGestora;
+
 public class InterfazBuscarEvento {
 
 	private JFrame frmEventallBuscar;
+	private JFrame frame;
 	private JTextField eventoSolicitado;
 	private JTable table;
 	private JTextField txtSeparator;
 	private JTextField numEntradasComprar;
 	private JTextField txtPreciomuestraentrada;
 	private JTextField PrecioFinalComprarYa;
+	private String nombre;
+	private Integer id_evento;
+	private Integer num_entradas;
+	private double precio_final;
+	
+	
 	/**
 	 * Launch the application.
 	 */
+	/*
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					InterfazBuscarEvento window = new InterfazBuscarEvento();
+					VentanaBuscarEvento window = new VentanaBuscarEvento();
 					window.frmEventallBuscar.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -55,12 +65,18 @@ public class InterfazBuscarEvento {
 			}
 		});
 	}
+	*/
 
 	/**
 	 * Create the application.
 	 */
-	public InterfazBuscarEvento() {
+	public InterfazBuscarEvento(JFrame frame, String nombre) {
 		initialize();
+		this.frame=frame;
+		this.nombre=nombre;
+		num_entradas=Integer.parseInt(numEntradasComprar.getText());
+		precio_final=Double.parseDouble(PrecioFinalComprarYa.getText());
+		
 	}
 
 	/**
@@ -77,8 +93,20 @@ public class InterfazBuscarEvento {
 		JButton btnNewButton = new JButton("Comprar entradas");
 		btnNewButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-			}
+				
+				
+					try {
+						
+						VentanaComprar window = new VentanaComprar(frmEventallBuscar, nombre, id_evento, num_entradas, precio_final);
+						window.getFrameComprar().setVisible(true);
+						frmEventallBuscar.setVisible(false);
+						} catch (Exception e1) {
+							e1.printStackTrace();
+					
+					}
+				}
 		});
+	
 		
 		JLabel lblHola = new JLabel("\u20AC/unid.");
 		lblHola.setFont(new Font("Tahoma", Font.PLAIN, 29));
@@ -172,7 +200,7 @@ public class InterfazBuscarEvento {
 					
 					if(tm!=null){
 					//Mostrar en la tabla los resultados de los eventos activos
-					table.setModel(tm);
+						table.setModel(tm);
 					}
 					
 				////
@@ -220,6 +248,10 @@ public class InterfazBuscarEvento {
 	        	//Selecciona el valor de la fila, columna 9
 				Integer price = (Integer) table.getValueAt(table.getSelectedRow(), 8);
 					txtPreciomuestraentrada.setText(Integer.toString(price.intValue()));
+				Integer id = (Integer) table.getValueAt(table.getSelectedRow(), 0);
+					txtPreciomuestraentrada.setText(Integer.toString(price.intValue()));
+					id_evento=id;
+					
 					
 					float preciofinalentradas = 0;
 					float txtPreciomuestraentrada_ =0;
@@ -238,11 +270,27 @@ public class InterfazBuscarEvento {
 	    });
 		
 		
+		
+		JButton btnNewButton_1 = new JButton("");
+		btnNewButton_1.setIcon(new ImageIcon("imgs/atras2.png"));
+		btnNewButton_1.setBounds(810, 381, 40, 50);
+		frmEventallBuscar.getContentPane().add(btnNewButton_1);
+		
+		
 		//Fondo pantalla en un Jlabel o una imagen
 		JLabel lblFondo = new JLabel();
 		lblFondo.setIcon(new ImageIcon(this.getClass().getResource("/imgs/wallpaper.jpg")));
 		lblFondo.setBounds(0, 0, 924, 442);
 		frmEventallBuscar.getContentPane().add(lblFondo);
+		btnNewButton_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e)	{
+				
+
+				frmEventallBuscar.dispose();
+				frame.setVisible(true);
+			}
+		
+		});
 		//Fin Fondo pantalla
 		
 		//modificar icono ventana
@@ -251,11 +299,29 @@ public class InterfazBuscarEvento {
 		ImageIcon icon = new ImageIcon(iconURL);
 		frmEventallBuscar.setIconImage(icon.getImage());
 		//Fin modificar icono ventana
+	
 		
 		
+		
+		
+
+	}
+	
+	
+
+	
+	public JFrame getJFrame(){
+		return frmEventallBuscar;
+	}
+	
+
+	public static void setVisible(boolean b) {
+		// TODO Auto-generated method stub
 		
 	}
 }
+
+
 
 
 
